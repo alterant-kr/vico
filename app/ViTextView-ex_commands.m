@@ -208,12 +208,16 @@
 {
 	NSString *script = [[[self textStorage] string] substringWithRange:command.range];
 	NSError *error = nil;
-	[[NSApp delegate] eval:script
-		    withParser:nil
-		      bindings:nil
-			 error:&error];
-	if (error)
-		return error;
+    
+    ViAppController *vac = (ViAppController *)[NSApp delegate];
+    if (vac) {
+        [vac eval:script
+       withParser:nil
+         bindings:nil
+            error:&error];
+        if (error)
+            return error;
+    }
 	return nil;
 }
 

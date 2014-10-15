@@ -296,66 +296,70 @@ DEBUG_FINALIZE();
 						   context:NULL];
 
 	// Set up default status bar.
-	NuBlock *statusSetupBlock = [[NSApp delegate] statusSetupBlock];
-	if (statusSetupBlock) {
-		NuCell *argument = [[NSArray arrayWithObject:messageView] list];
-
-		@try {
-			[statusSetupBlock evalWithArguments:argument
-										context:[statusSetupBlock context]];
-		}
-		@catch (NSException *exception) {
-			INFO(@"got exception %@ while evaluating expression:\n%@", [exception name], [exception reason]);
-			INFO(@"context was: %@", [statusSetupBlock context]);
-			[self message:[NSString stringWithFormat:@"Got exception %@: %@", [exception name], [exception reason]]];
-		}
-	} else {
-		ViStatusNotificationLabel *caretLabel =
-			[ViStatusNotificationLabel statusLabelForNotification:ViCaretChangedNotification
-												  withTransformer:^(ViStatusView *statusView, NSNotification *notification) {
-				ViTextView *textView = (ViTextView *)[notification object];
-
-				// If this is the ex box (which has no superview) or this is not
-				// for the current window, we bail on out.
-				if ([statusView window] != [textView window])
-					return (id)nil;
-
-				return (id)[NSString stringWithFormat:@"%lu,%lu",
-					(unsigned long)[textView currentLine],
-					(unsigned long)[textView currentColumn]];
-		  }];
-		ViStatusNotificationLabel *modeLabel =
-			[ViStatusNotificationLabel statusLabelForNotification:ViModeChangedNotification
-												withTransformer:^(ViStatusView *statusView, NSNotification *notification) {
-				ViTextView *textView = (ViTextView *)[notification object];
-				ViDocument *document = textView.document;
-
-				// If this is the ex box (which has no superview) or this is not
-				// for the current window, we bail on out.
-				if (! [textView superview] || [statusView window] != [textView window])
-					return (id)nil;
-
-				const char *modestr = "";
-				if (document.busy) {
-					modestr = "--BUSY--";
-				} else if (textView.mode == ViInsertMode) {
-					if (document.snippet)
-						modestr = "--SNIPPET--";
-					else
-						modestr = "--INSERT--";
-				} else if (textView.mode == ViVisualMode) {
-					if (textView.visual_line_mode)
-						modestr = "--VISUAL LINE--";
-					else
-						modestr = "--VISUAL--";
-				}
-
-				return (id)[NSString stringWithFormat:@"    %s", modestr];
-			}];
-
-		[messageView setStatusComponents:[NSArray arrayWithObjects:caretLabel, modeLabel, nil]];
-	}
-
+    ViAppController *vac = (ViAppController *)[NSApp delegate];
+    if (vac) {
+        NuBlock *statusSetupBlock = [vac statusSetupBlock];
+        if (statusSetupBlock) {
+            NuCell *argument = [[NSArray arrayWithObject:messageView] list];
+            
+            @try {
+                [statusSetupBlock evalWithArguments:argument
+                                            context:[statusSetupBlock context]];
+            }
+            @catch (NSException *exception) {
+                INFO(@"got exception %@ while evaluating expression:\n%@", [exception name], [exception reason]);
+                INFO(@"context was: %@", [statusSetupBlock context]);
+                [self message:[NSString stringWithFormat:@"Got exception %@: %@", [exception name], [exception reason]]];
+            }
+        } else {
+            ViStatusNotificationLabel *caretLabel =
+            [ViStatusNotificationLabel statusLabelForNotification:ViCaretChangedNotification
+                                                  withTransformer:^(ViStatusView *statusView, NSNotification *notification) {
+                                                      ViTextView *textView = (ViTextView *)[notification object];
+                                                      
+                                                      // If this is the ex box (which has no superview) or this is not
+                                                      // for the current window, we bail on out.
+                                                      if ([statusView window] != [textView window])
+                                                          return (id)nil;
+                                                      
+                                                      return (id)[NSString stringWithFormat:@"%lu,%lu",
+                                                                  (unsigned long)[textView currentLine],
+                                                                  (unsigned long)[textView currentColumn]];
+                                                  }];
+            ViStatusNotificationLabel *modeLabel =
+            [ViStatusNotificationLabel statusLabelForNotification:ViModeChangedNotification
+                                                  withTransformer:^(ViStatusView *statusView, NSNotification *notification) {
+                                                      ViTextView *textView = (ViTextView *)[notification object];
+                                                      ViDocument *document = textView.document;
+                                                      
+                                                      // If this is the ex box (which has no superview) or this is not
+                                                      // for the current window, we bail on out.
+                                                      if (! [textView superview] || [statusView window] != [textView window])
+                                                          return (id)nil;
+                                                      
+                                                      const char *modestr = "";
+                                                      if (document.busy) {
+                                                          modestr = "--BUSY--";
+                                                      } else if (textView.mode == ViInsertMode) {
+                                                          if (document.snippet)
+                                                              modestr = "--SNIPPET--";
+                                                          else
+                                                              modestr = "--INSERT--";
+                                                      } else if (textView.mode == ViVisualMode) {
+                                                          if (textView.visual_line_mode)
+                                                              modestr = "--VISUAL LINE--";
+                                                          else
+                                                              modestr = "--VISUAL--";
+                                                      }
+                                                      
+                                                      return (id)[NSString stringWithFormat:@"    %s", modestr];
+                                                  }];
+            
+            [messageView setStatusComponents:[NSArray arrayWithObjects:caretLabel, modeLabel, nil]];
+        }
+        
+    }
+    
 	[[NSNotificationCenter defaultCenter] postNotificationName:ViWindowDidLoad object:self];
 }
 
@@ -1307,9 +1311,14 @@ DEBUG_FINALIZE();
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem
 {
-	NSWindow *keyWindow = [[NSApp delegate] keyWindowBeforeMainMenuTracking];
-	BOOL isDocWindow = [[keyWindow windowController] isKindOfClass:[ViWindowController class]];
-
+    BOOL isDocWindow = FALSE;
+    
+    ViAppController *vac = (ViAppController *)[NSApp delegate];
+    if (vac) {
+        NSWindow *keyWindow = [vac keyWindowBeforeMainMenuTracking];
+        isDocWindow = [[keyWindow windowController] isKindOfClass:[ViWindowController class]];
+    }
+    
 	return isDocWindow;
 }
 

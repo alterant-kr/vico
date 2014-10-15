@@ -510,14 +510,18 @@
 				_path, @"bundlePath",
 				nil];
 			NSError *error = nil;
-			[[NSApp delegate] eval:script
-				    withParser:_parser
-				      bindings:bindings
-					 error:&error];
-			if (error) {
-				INFO(@"%@: %@", file, [error localizedDescription]);
-				return NO;
-			}
+
+            ViAppController *vac = (ViAppController *)[NSApp delegate];
+            if (vac) {
+                [vac eval:script
+               withParser:_parser
+                 bindings:bindings
+                    error:&error];
+                if (error) {
+                    INFO(@"%@: %@", file, [error localizedDescription]);
+                    return NO;
+                }
+            }
 		}
 	}
 
